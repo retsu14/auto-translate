@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 
+const baseUrl = process.env.PROPERTIES_API;
+
 export async function GET(req: Request) {
-  const baseUrl = "https://islandproperty.haspcms.net/api/contents/properties/entries";
   let allData: any[] = [];
   let page = 1;
   let condition = true;
