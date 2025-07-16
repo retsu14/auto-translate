@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 const baseUrl = process.env.PROPERTIES_API;
+const rateLimitKey = process.env.RATE_LIMIT_KEY;
 
 export async function GET(req: Request) {
   let allData: any[] = [];
@@ -12,8 +13,11 @@ export async function GET(req: Request) {
     console.log(`📡 Fetching page ${page}...`);
 
     try {
-      const res = await fetch(url);
-
+      const res = await fetch(url, {
+        headers: {
+          ...(rateLimitKey ? { "Rate-Limit-Key": rateLimitKey } : {}),
+        },
+      });
       if (!res.ok) {
         throw new Error(`HTTP ${res.status} on page ${page}`);
       }
@@ -36,7 +40,10 @@ export async function GET(req: Request) {
       );
 
       errorResponse.headers.set("Access-Control-Allow-Origin", "*");
-      errorResponse.headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+      errorResponse.headers.set(
+        "Access-Control-Allow-Methods",
+        "GET, POST, OPTIONS"
+      );
       errorResponse.headers.set("Access-Control-Allow-Headers", "Content-Type");
 
       return errorResponse;
