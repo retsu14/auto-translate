@@ -1,71 +1,17 @@
 import { NextResponse } from "next/server";
+import { promises as fs } from "fs";
+import path from "path";
 
-const baseUrl = process.env.PROPERTIES_API;
-const rateLimitKey = process.env.RATE_LIMIT_KEY;
-
-export async function GET(req: Request) {
-  let allData: any[] = [];
-  let page = 1;
-  let condition = true;
-
-  while (condition) {
-    const url = `${baseUrl}?page%5Bnumber%5D=${page}`;
-    console.log(`📡 Fetching page ${page}...`);
-
-    try {
-      const res = await fetch(url, {
-        headers: {
-          ...(rateLimitKey ? { "Rate-Limit-Key": rateLimitKey } : {}),
-        },
-      });
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status} on page ${page}`);
-      }
-
-      const json = await res.json();
-      const entries = json.data;
-
-      if (!entries || entries.length === 0) {
-        console.log("🚧 No more entries. Stopping.");
-        break;
-      }
-
-      allData.push(...entries);
-      page++;
-    } catch (err: any) {
-      console.error(`❌ Error fetching page ${page}:`, err.message);
-      const errorResponse = NextResponse.json(
-        { message: "Failed to fetch all properties", error: err.message },
-        { status: 500 }
-      );
-
-      errorResponse.headers.set("Access-Control-Allow-Origin", "*");
-      errorResponse.headers.set(
-        "Access-Control-Allow-Methods",
-        "GET, POST, OPTIONS"
-      );
-      errorResponse.headers.set("Access-Control-Allow-Headers", "Content-Type");
-
-      return errorResponse;
-    }
+export async function GET() {
+  const filePath = path.join(process.cwd(), "lib", "properties.json");
+  try {
+    const fileContents = await fs.readFile(filePath, "utf-8");
+    const jsonData = JSON.parse(fileContents);
+    return NextResponse.json(jsonData);
+  } catch (err: any) {
+    return NextResponse.json(
+      { message: "Failed to read properties.json", error: err.message },
+      { status: 500 }
+    );
   }
-
-  console.log(`✅ Fetched total ${allData.length} entries.`);
-  const response = NextResponse.json({ data: allData });
-
-  response.headers.set("Access-Control-Allow-Origin", "*");
-  response.headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  response.headers.set("Access-Control-Allow-Headers", "Content-Type");
-
-  return response;
-}
-
-export async function OPTIONS() {
-  const response = new NextResponse(null, { status: 204 });
-
-  response.headers.set("Access-Control-Allow-Origin", "*");
-  response.headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  response.headers.set("Access-Control-Allow-Headers", "Content-Type");
-
-  return response;
 }
